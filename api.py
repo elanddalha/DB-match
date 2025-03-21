@@ -7,16 +7,23 @@ from fastapi import FastAPI, Request
 from starlette.responses import JSONResponse
 
 # ✅ GitHub에 올린 CSV 파일 RAW URL (본인의 GitHub 저장소로 변경 필요)
-CSV_URL = "https://raw.githubusercontent.com/elanddalha/DB-match/refs/heads/main/pension_data.csv"
+CSV_URL = "https://raw.githubusercontent.com/elanddalha/DB-match/main/pension_data.csv"
 
 # ✅ GitHub에서 CSV 불러오기
 def load_csv():
-    response = requests.get(CSV_URL)
-    df = pd.read_csv(StringIO(response.text), dtype=str)  # 문자열 데이터를 데이터프레임으로 변환
-    return df
+    try:
+        response = requests.get(CSV_URL)
+        response.raise_for_status()  # HTTP 에러 발생 시 예외 처리
+        df = pd.read_csv(StringIO(response.text), dtype=str)  # 문자열 데이터를 데이터프레임으로 변환
+        return df
+    except Exception as e:
+        print(f"🚨 CSV 파일 로드 실패: {str(e)}")
+        return None
 
 # ✅ 데이터 로드
 df = load_csv()
+if df is None:
+    raise RuntimeError("🚨 CSV 파일을 불러올 수 없습니다. GitHub URL을 확인하세요.")
 
 # ✅ FastAPI 앱 생성
 app = FastAPI()
@@ -53,6 +60,14 @@ async def check_pension(request: Request):
         user_id = match.group(2)    # 사번
 
         # ✅ 데이터프레임에서 조회
+        if df is None:
+            return JSONResponse(content={
+                "version": "2.0",
+                "template": {
+                    "outputs": [{"simpleText": {"text": "🚨 CSV 데이터가 로드되지 않았습니다. 관리자에게 문의하세요."}}]
+                }
+            }, status_code=500)
+
         result = df[(df['name'] == user_name) & (df['id'] == user_id)]
 
         if not result.empty:
@@ -70,6 +85,7 @@ async def check_pension(request: Request):
         })
 
     except Exception as e:
+        print(f"🚨 서버 오류 발생: {str(e)}")
         return JSONResponse(content={
             "version": "2.0",
             "template": {
