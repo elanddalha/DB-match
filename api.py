@@ -4,10 +4,10 @@ import pandas as pd
 import requests
 from io import StringIO
 from fastapi import FastAPI, Request
-from starlette.responses import JSONResponse, RedirectResponse
+from starlette.responses import JSONResponse
 
 # ✅ GitHub에 올린 CSV 파일 RAW URL (본인의 GitHub 저장소로 변경 필요)
-CSV_URL = "https://raw.githubusercontent.com/elanddalha/DB-match/refs/heads/main/pension_data.csv"
+CSV_URL = "https://raw.githubusercontent.com/elanddalha/DB-match/main/pension_data.csv"
 
 # ✅ GitHub에서 CSV 불러오기
 def load_csv():
@@ -26,6 +26,7 @@ def home():
     """서버 정상 작동 확인"""
     return {"message": "퇴직연금 가입 여부 조회 API 실행 중!"}
 
+@app.post("/webhook")
 @app.post("/check-pension")
 async def check_pension(request: Request):
     try:
@@ -76,8 +77,3 @@ async def check_pension(request: Request):
                 "outputs": [{"simpleText": {"text": f"서버 오류가 발생했습니다: {str(e)}"}}]
             }
         }, status_code=500)
-
-# ✅ `/webhook`으로 요청이 오면 `/check-pension`으로 리디렉트
-@app.post("/webhook")
-async def webhook_redirect():
-    return RedirectResponse(url="/check-pension")
