@@ -1,14 +1,24 @@
 import os
 import json
 import pandas as pd
+import requests
+from io import StringIO
 from fastapi import FastAPI, Request
 from starlette.responses import JSONResponse
 
-# CSV 데이터 로드
-csv_file_path = "pension_data.csv"
-df = pd.read_csv(csv_file_path, dtype=str)
+# ✅ GitHub에 올린 CSV 파일 RAW URL (본인의 GitHub 저장소로 변경 필요)
+CSV_URL = "https://raw.githubusercontent.com/elanddalha/DB-match/refs/heads/main/pension_data.csv"
 
-# FastAPI 앱 생성
+# ✅ GitHub에서 CSV 불러오기
+def load_csv():
+    response = requests.get(CSV_URL)
+    df = pd.read_csv(StringIO(response.text), dtype=str)  # 문자열 데이터를 데이터프레임으로 변환
+    return df
+
+# ✅ 데이터 로드
+df = load_csv()
+
+# ✅ FastAPI 앱 생성
 app = FastAPI()
 
 @app.get("/")
@@ -26,7 +36,7 @@ async def check_pension(request: Request):
         if not user_input:
             user_input = data.get('utterance', '').strip()
 
-        # 정규식으로 이름과 사번 분리
+        # ✅ 정규식으로 이름과 사번 분리
         import re
         pattern = r"^([가-힣]+)(\d+)$"
         match = re.match(pattern, user_input)
@@ -42,7 +52,7 @@ async def check_pension(request: Request):
         user_name = match.group(1)  # 이름
         user_id = match.group(2)    # 사번
 
-        # 데이터프레임에서 조회
+        # ✅ 데이터프레임에서 조회
         result = df[(df['name'] == user_name) & (df['id'] == user_id)]
 
         if not result.empty:
