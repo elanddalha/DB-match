@@ -1,3 +1,4 @@
+
 import os
 import json
 import pandas as pd
@@ -5,17 +6,17 @@ import requests
 from io import StringIO
 from fastapi import FastAPI, Request
 from starlette.responses import JSONResponse
-import asyncio  # ✅ 추가: 딜레이용
 
-# ✅ GitHub에 올린 CSV 파일 RAW URL
+# ✅ GitHub에 올린 CSV 파일 RAW URL (본인의 GitHub 저장소로 변경 필요)
 CSV_URL = "https://raw.githubusercontent.com/elanddalha/DB-match/main/pension_data.csv"
 
 # ✅ GitHub에서 CSV 불러오기
 def load_csv():
     response = requests.get(CSV_URL)
-    df = pd.read_csv(StringIO(response.text), dtype=str)
+    df = pd.read_csv(StringIO(response.text), dtype=str)  # 문자열 데이터를 데이터프레임으로 변환
     return df
 
+# ✅ 데이터 로드
 df = load_csv()
 
 # ✅ FastAPI 앱 생성
@@ -50,24 +51,16 @@ async def check_pension(request: Request):
                 }
             }, status_code=400)
 
-        user_name = match.group(1)
-        user_id = match.group(2)
+        user_name = match.group(1)  # 이름
+        user_id = match.group(2)    # 사번
 
-        # ✅ 딜레이 + 기본 응답 설정
-        await asyncio.sleep(1.5)
-        response_text = "조회 중입니다. 3초 안에 답변이 없을 경우 다시 한번 입력해주세요."
-
-        # ✅ 실제 데이터 조회
+        # ✅ 데이터프레임에서 조회
         result = df[(df['name'] == user_name) & (df['id'] == user_id)]
 
         if not result.empty:
             pension_type = result.iloc[0]['pension_type']
             securities_firm = result.iloc[0]['securities_firm']
-            response_text = (
-                f"현재 퇴직연금에 가입되어 있으며, '{securities_firm}' 계좌를 이용 중입니다."
-                if pension_type == "가입"
-                else "현재 퇴직연금 미가입 상태입니다. 이랜드 퇴직연금은 매년 12월에 신규가입 가능합니다."
-            )
+            response_text = f"현재 퇴직연금에 가입되어 있으며, '{securities_firm}' 계좌를 이용 중입니다." if pension_type == "가입" else "현재 퇴직연금 미가입 상태입니다. 이랜드 퇴직연금은 매년 12월에 신규가입 가능합니다."
         else:
             response_text = "현재 퇴직연금 가입 대상자가 아닙니다. 1년 미만 근로자가 아니라면, 입력 정보를 다시 확인해주세요."
 
