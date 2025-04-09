@@ -26,6 +26,9 @@ app = FastAPI()
 def home():
     """서버 정상 작동 확인"""
     return {"message": "퇴직연금 가입 여부 조회 API 실행 중!"}
+print("✅ API 실행됨 - 현재 코드 반영 확인됨")
+
+
 
 @app.post("/webhook")
 @app.post("/check-pension")
